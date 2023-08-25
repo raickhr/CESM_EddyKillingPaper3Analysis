@@ -38,16 +38,26 @@ def getAreaAvgMaskedVal(posThetaEP_str,
 
 
 if __name__ == '__main__':
-    rootFolder = '/discover/nobackup/projects/mesocean/srai/runGeos7dayAvg/'
+    rootFolder = '/pscratch/sd/s/srai/nccs/runGeos7dayAvg/'
+    ds_masks = Dataset(rootFolder + 'test_7dayAvg_NanLand_test/input/RegionMasks.nc')
+    GridFile = rootFolder + 'test_7dayAvg_NanLand_test/input/tripoleGridCreated.nc'
+    kmtSatFile = 'test_7dayAvg_NanLand_test/input/kmtSatToCESM.nc'
+    keAndEkeFile = rootFolder + 'test_7dayAvg_NanLand_test/input/KEandEKE_pop.nc'
+    
 
-    ds_masks = Dataset(rootFolder + 'tavgInput/RegionMasks.nc')
-    GridFile = rootFolder + 'tavgInput/newGlobalGrid_tripolePOP_0.1deg.nc'
-
+    kmtDS = Dataset(rootFolder + kmtSatFile)
+    KMT = 1-np.roll(np.array(kmtDS.variables['KMTsat']), 1800, axis=1)
+    
+    keDS = Dataset(keAndEkeFile)
+    KE = np.array(keDS.variables['KE'][:,:])/10000
+    EKE = np.array(keDS.variables['EKE'][:,:])/10000
+    highKE_mask = (KE + EKE) > 0.04    
+    
     gridDS = Dataset(GridFile)
     UAREA = np.array(gridDS.variables['UAREA'])
     ULAT = np.array(gridDS.variables['ULAT'])
     ULONG = np.array(gridDS.variables['ULONG'])
-    KMT = np.array(gridDS.variables['KMT'])
+    #KMT = np.array(gridDS.variables['KMT'])
     ylen, xlen = np.shape(UAREA)
     DX = np.array(gridDS.variables['DXU'])
     DY = np.array(gridDS.variables['DYU'])
@@ -55,8 +65,8 @@ if __name__ == '__main__':
     mask_20_40N = np.logical_and(ULAT > 20, ULAT < 40)
     mask_5S_5N = np.logical_and(ULAT > -5, ULAT < 5)
     mask_15_40S = np.logical_and(ULAT > -40, ULAT < -15)
-    landMask = KMT < 30
-    highKE_mask = np.array(ds_masks['HighEKE'][:, :])
+    landMask = KMT < 1
+    #highKE_mask = np.array(ds_masks['HighEKE'][:, :])
 
     landMaskWithHiKE = np.logical_or(landMask, highKE_mask)
     UAREA[landMaskWithHiKE] = float('nan')
@@ -70,7 +80,7 @@ if __name__ == '__main__':
 
     for ellIDX in range(nell):
         ell = ellList[ellIDX]
-        ellFold = rootFolder + 'tavgOutput/{0:d}km/'.format(ell)
+        ellFold = rootFolder + 'test_7dayAvg_NanLand_test/Output/{0:d}km_smth/'.format(ell)
 
         writeFileName = ellFold + \
             'EP_rotAndstr_LatBandSeries_{0:04d}km.nc'.format(
@@ -78,7 +88,7 @@ if __name__ == '__main__':
 
         fileName1 = 'EPonPosAndNegVort_{0:04d}km.nc'.format(
             ell)
-        fileName2 = 'EP_on45degAndMinus45Strain_{0:04d}km.nc'.format(
+        fileName2 = 'EPon45degAndMinus45Strain_{0:04d}km.nc'.format(
             ell)
 
         print('working in file {0:s} and {1:s} for ell {2:d}km'.format(
@@ -203,4 +213,5 @@ if __name__ == '__main__':
                                NLMstrNrot_15_40S[:, 3])
 
         wds.close()
+
 
